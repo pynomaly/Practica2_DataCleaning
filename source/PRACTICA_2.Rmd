@@ -1,0 +1,10 @@
+---
+title: "Práctica 2 - Tipología y Ciclo de Vida de los Datos"
+author: "Esteban Braganza Cajas y Ana Álvarez Sánchez"
+date: "2024-05-22"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
