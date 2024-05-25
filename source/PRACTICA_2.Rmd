@@ -6,5 +6,246 @@ output: pdf_document
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(echo = TRUE, results = 'markup')
 ```
+
+# 1. Descripción del dataset
+¿Por qué es importante y qué pregunta/problema pretende responder? Resume brevemente las variables que lo forman y su tamaño.
+
+PREGUNTA/PROBLEMA A RESPONDER:
+
+
+
+
+
+
+```{r}
+data <- read.csv("../data/images_db.csv")
+```
+El fichero de datos contiene `r nrow(data)` registros y  `r ncol(data)` variables. 
+
+El dataset está compuesto por los siguientes campos:
+
+* `search_topic`: la imagen es resultado de la búsqueda por este tema
+* `page_num`: la imagen aparece en este número de página de la búsqueda
+* `image_page`: enlace a la página con la información de la imagen
+* `image_url`: enlace a la imagen
+* `image_title`: título de la imagen
+* `image_author`: autor/a de la imagen
+* `image_favs`: número de veces que le han dado a “me gusta” en la imagen
+* `image_com`: número de comentarios que tiene la imagen
+* `image_views`: número de vistas a la imagen
+* `private_collections`: número de veces que ha sido incluida en una colección privada
+* `tags`: etiquetas que se le han asignado a la imagen para facilitar su descubrimiento
+* `location`: país o localización geográfica, si el autor la quiere identificar description: campo de texto abierto creado por el autor, que acompaña a la imagen. Puede incluir detalles técnicos o enlaces a las redes sociales del autor/a.
+* `description`; descripción de la imagen que hace el autor. 
+* `image_px`: dimensiones de la imagen, en pixeles
+* `image_size`: peso de la imagen en MB.
+* `published_date`: fecha de publicación de la imagen.
+* `last_comment`: último comentario añadido a la imagen.
+* `license`: licencia de la imagen
+
+En cuanto a la descripción de cada una de estas variables:
+
+* La variable `search_topic` incluye `r length(unique(data$search_topic))` posibilidades, que son: `r toString(unique(data$search_topic))`. Las frecuencias de cada una de estas categorías en el conjunto de datos es esta:
+```{r}
+knitr::kable(table(data$search_topic))
+```
+
+* La variable `page_num` incluye `r length(unique(data$page_num))` posibilidades, que están en el rango `r range(data$page_num)`, porque en la descarga se han elegido las primeras 15 páginas de cada topic buscado.
+
+```{r}
+hist(data$page_num)
+```
+
+
+* Las variables `image_page`, `image_url`, `image_title`, `description` y `last_comment` son variables de tipo texto.
+
+* La variable `image_author` incluye `r length(unique(data$image_author))` posibilidades. El autor/a con más registros tiene `r max(table(data$image_author))` obras. `r sum(table(data$image_author) == 1)` tienen una sola obra en el dataset. La media de imágenes por autor es de `r round(mean(table(data$image_author)), 2)`.
+
+```{r}
+frecuencias <- table(data$image_author)
+df_frecuencias <- as.data.frame(frecuencias)
+df_frecuencias_ordenado <- df_frecuencias[order(-df_frecuencias$Freq), ]
+
+knitr::kable(head(df_frecuencias_ordenado, 10))
+
+```
+
+* La variable `image_favs` es numérica, con un valor mínimo de `r min(data$image_favs)`, un valor máximo de `r max(data$image_favs)`, una media de `r round(mean(data$image_favs), 2)`, con esta distribución:
+
+```{r}
+hist(data$image_favs)
+```
+
+* La variable `image_com` es numérica, con un valor mínimo de `r min(data$image_com)`, un valor máximo de `r max(data$image_com)`, una media de `r round(mean(data$image_com), 2)`, con esta distribución:
+
+```{r}
+hist(data$image_com)
+```
+
+* La variable `image_views` es numérica, con un valor mínimo de `r min(data$image_views)`, un valor máximo de `r max(data$image_views)`, una media de `r round(mean(data$image_views), 2)`, una mediana de `r median(data$image_views)`, con esta distribución:
+
+```{r}
+
+hist(data$image_views)
+```
+Esto indica la presencia de outliers en esta variable.
+
+* La variable `private_collections` es numérica, con un valor mínimo de `r min(data$private_collections)`, un valor máximo de `r max(data$private_collections)`, una media de `r round(mean(data$private_collections), 2)`, con esta distribución:
+
+```{r}
+hist(data$private_collections)
+```
+
+* La variable `tags` -> qué hacer con ella????
+
+* La variable `image_size` es numérica, con un valor mínimo de `r min(data$image_size)`, un valor máximo de `r max(data$image_size)`, una media de `r round(mean(data$image_size))`, con esta distribución:
+
+```{r}
+hist(data$image_size)
+```
+
+Se limpian variables `location` (candidata a ser eliminada por número de NA), `published_date` (conversión a tipo Date), `image_license`, unificando las licencias copyright y convirtiéndola a categórica, `image_px` (unificamos formato en ancho x largo y extraemos superficie de la imagen, el resto de valores los convertimos a NA). Se desarrolla en el apartado de limpieza de los datos.
+
+
+# 2. Integración y selección de los datos de interés a analizar
+Puede ser el resultado de adicionar diferentes datasets o una subselección útil de los datos originales, en base al objetivo que se quiera conseguir. Si se decide trabajar con una selección de los datos, es muy importante que esta esté debidamente justificada. Además, se recomienda mostrar un resumen de los datos que permita ver a simple vista las diferentes variables y sus rangos de valores.
+
+PROPUESTA: eliminación de las variables de texto libre, como `description`, `image_url`, `image_page`, `last_comment`. Eliminación de las variables con gran número de NA (`location`). Mantener una de las dos variables de dimensiones: `size` o `superficie`, eliminar la otra.
+
+```{r}
+summary(data)
+```
+
+# 3. Limpieza de los datos
+3.1. ¿Los datos contienen ceros, elementos vacíos u otros valores numéricos que indiquen la pérdida de datos? Gestiona cada uno de estos casos utilizando el método de imputación que consideres más adecuado.
+3.2. Identifica y gestiona adecuadamente el tipo de dato de cada atributo (p.ej. conversión de variables categóricas en factor).
+3.3. Identifica y gestiona los valores extremos.
+3.4. Justifica la necesidad de otros métodos de limpieza para este dataset en particular y, de ser necesario, aplícalos.
+
+* Conversión a categórica de la variable `search_topic`:
+
+```{r}
+data$search_topic <- as.factor(data$search_topic)
+```
+
+* La variable `location` tiene un alto porcentaje de valores vacíos (""), que constituyen el `r round((nrow(data[data$location == "", ]) / nrow(data)) * 100, 2)`% de los registros. Convertimos esos valores en NA para su mejor identificación.
+
+```{r}
+data$location[data$location == ""] <- NA
+```
+
+* La variable `published_date` es de tipo character, la convertimos a tipo Date. 
+
+```{r}
+# Extraer solo la parte de la fecha (sin la hora)
+data$published_date <- substr(data$published_date, 1, 10)
+
+# Convertir a formato de fecha
+data$published_date <- as.Date(data$published_date)
+```
+
+* La variable `image_license`, contiene muchos valores vacíos (""). Empezamos convirtiendo esos en NA.
+
+```{r}
+data$image_license[data$image_license == ""] <- NA
+```
+
+Todas las que tengan el símbolo "©" las sustituimos por la palabra Copyright:
+```{r}
+# Identificar las filas que contienen "©"
+filas_con_copyright <- grep("©", data$image_license)
+
+# Sustituir toda la celda por "Copyright" para las filas identificadas
+data$image_license[filas_con_copyright] <- "Copyright"
+```
+
+```{r}
+knitr::kable(table(data$image_license))
+```
+
+La convertimos en categórica:
+```{r}
+data$image_license <- as.factor(data$image_license)
+
+str(data$image_license)
+
+```
+
+* La variable `image_px` es de tipo character e indica el tamaño de la imagen en píxeles, en formato "ancho x alto". Para poder utilizarla en nuestro análisis como una variable numérica. Antes de convertir los dos valores en numéricos, comprobamos que todos los datos aparecen en ese formato "ancho x alto":
+
+```{r}
+# Obtener los índices de las filas que no contienen "x"
+filas_sin_x <- grep("x", data$image_px, invert = TRUE)
+
+# Ver las filas que no contienen "x"
+nrow(data[filas_sin_x, "image_px", drop = FALSE])
+
+```
+Estos datos podrían representar el número total de píxeles en la imagen, en lugar de especificar el ancho y el alto por separado.
+
+Opción: ignorar estos valores, convirtiéndolos en NA, porque no podemos saber si las imágenes son cuadradas (mismo ancho y alto)
+
+```{r}
+data$image_px[filas_sin_x] <- NA
+```
+
+
+```{r}
+# Filtrar las filas que no tienen valores NA en la columna image_px
+sin_na <- complete.cases(data$image_px)
+
+# Dividir la cadena en dos partes (ancho y alto) solo para las filas sin NA
+dimensiones <- strsplit(data$image_px[sin_na], "x")
+
+# Convertir las partes a valores numéricos
+ancho <- as.numeric(sapply(dimensiones, "[[", 1))
+alto <- as.numeric(sapply(dimensiones, "[[", 2))
+
+# Crear nuevas columnas en el data frame para el ancho y el alto y la superficie total
+# data$ancho[sin_na] <- ancho
+# data$alto[sin_na] <- alto
+data$superficie[sin_na] <- ancho * alto
+
+```
+
+
+* La variable `image_views` es numérica, con un valor mínimo de `r min(data$image_views)`, un valor máximo de `r max(data$image_views)`, una media de `r round(mean(data$image_views), 2)`, una mediana de `r median(data$image_views)`, con esta distribución:
+
+```{r}
+
+hist(data$image_views)
+```
+Esto indica la presencia de outliers en esta variable.
+
+
+Convertimos todos los valores en el dataset que son texto vacío ("") en NA, por si han quedado en alguna otra variable, puesto que se trata de valores ausentes.
+
+```{r}
+# Convertir todos los valores vacíos ("") en el dataset a NA
+data <- data.frame(lapply(data, function(x) {
+  x[x == ""] <- NA
+  return(x)
+}), stringsAsFactors = FALSE)
+
+```
+
+Valores ausentes de cada variable:
+```{r}
+colSums(is.na(data))
+```
+
+
+# 4. Análisis de los datos
+4.1. Aplica un modelo supervisado y uno no supervisado a los datos y comenta los resultados obtenidos.
+4.2. Aplica una prueba por contraste de hipótesis. Ten en cuenta que algunas de estas pruebas requieren verificar previamente la normalidad y homocedasticidad de los datos.
+
+# 5. Representación de los resultados a partir de tablas y gráficas
+Este apartado se puede responder a lo largo de la práctica, sin necesidad de concentrar todas
+las representaciones en este apartado. 
+
+Se debe representar tanto el contenido del dataset para observar las proporciones y distribuciones de las diferentes variables una vez aplicada la etapa de limpieza, como los resultados obtenidos tras la etapa de análisis.
+
+# 6. Resolución del problema
+A partir de los resultados obtenidos, ¿cuáles son las conclusiones? ¿Los resultados permiten responder al problema?
