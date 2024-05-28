@@ -14,7 +14,7 @@ knitr::opts_chunk$set(echo = TRUE, results = 'markup')
 
 PREGUNTA/PROBLEMA A RESPONDER:
 
-
+Factores de los que depende el número de favoritos ()
 
 
 
@@ -22,9 +22,8 @@ PREGUNTA/PROBLEMA A RESPONDER:
 ```{r}
 data <- read.csv("../data/images_db.csv")
 ```
-El fichero de datos contiene `r nrow(data)` registros y  `r ncol(data)` variables. 
 
-El dataset está compuesto por los siguientes campos:
+El fichero de datos contiene `r nrow(data)` registros y  `r ncol(data)` variables:
 
 * `search_topic`: la imagen es resultado de la búsqueda por este tema
 * `page_num`: la imagen aparece en este número de página de la búsqueda
@@ -38,7 +37,7 @@ El dataset está compuesto por los siguientes campos:
 * `private_collections`: número de veces que ha sido incluida en una colección privada
 * `tags`: etiquetas que se le han asignado a la imagen para facilitar su descubrimiento
 * `location`: país o localización geográfica, si el autor la quiere identificar description: campo de texto abierto creado por el autor, que acompaña a la imagen. Puede incluir detalles técnicos o enlaces a las redes sociales del autor/a.
-* `description`; descripción de la imagen que hace el autor. 
+* `description`: descripción de la imagen que hace el autor. 
 * `image_px`: dimensiones de la imagen, en pixeles
 * `image_size`: peso de la imagen en MB.
 * `published_date`: fecha de publicación de la imagen.
@@ -46,6 +45,10 @@ El dataset está compuesto por los siguientes campos:
 * `license`: licencia de la imagen
 
 En cuanto a la descripción de cada una de estas variables:
+
+* Las variables description, image_title y last_comment son campos de texto abiertos.
+
+* Las variables image_url, image_page incluyen los enlaces a la página de la imagen y a la imagen en sí.
 
 * La variable `search_topic` incluye `r length(unique(data$search_topic))` posibilidades, que son: `r toString(unique(data$search_topic))`. Las frecuencias de cada una de estas categorías en el conjunto de datos es esta:
 ```{r}
@@ -87,18 +90,19 @@ hist(data$image_com)
 * La variable `image_views` es numérica, con un valor mínimo de `r min(data$image_views)`, un valor máximo de `r max(data$image_views)`, una media de `r round(mean(data$image_views), 2)`, una mediana de `r median(data$image_views)`, con esta distribución:
 
 ```{r}
-
-hist(data$image_views)
+boxplot(data$image_views)
 ```
 Esto indica la presencia de outliers en esta variable.
 
 * La variable `private_collections` es numérica, con un valor mínimo de `r min(data$private_collections)`, un valor máximo de `r max(data$private_collections)`, una media de `r round(mean(data$private_collections), 2)`, con esta distribución:
 
 ```{r}
-hist(data$private_collections)
+boxplot(data$private_collections)
 ```
+En `r round(sum(data$private_collections == 0) / nrow(data) *100, 2)`% de los registros no están en ninguna colección privada. Puede ser una variable que no aporte demasiada información.
 
-* La variable `tags` -> qué hacer con ella????
+* La variable `tags` es de tipo character e incluye una lista de tags con los que el autor/a de la imagen la ha etiquetado.
+
 
 * La variable `image_size` es numérica, con un valor mínimo de `r min(data$image_size)`, un valor máximo de `r max(data$image_size)`, una media de `r round(mean(data$image_size))`, con esta distribución:
 
@@ -106,7 +110,7 @@ hist(data$private_collections)
 hist(data$image_size)
 ```
 
-Se limpian variables `location` (candidata a ser eliminada por número de NA), `published_date` (conversión a tipo Date), `image_license`, unificando las licencias copyright y convirtiéndola a categórica, `image_px` (unificamos formato en ancho x largo y extraemos superficie de la imagen, el resto de valores los convertimos a NA). Se desarrolla en el apartado de limpieza de los datos.
+En el apartado de limpieza de los datos, se limpiarán las variables `location` (candidata a ser eliminada por número de NA), `published_date` (conversión a tipo Date), `image_license`, unificando las licencias copyright y convirtiéndola a categórica, `image_px` (unificamos formato en ancho x largo y extraemos superficie de la imagen, el resto de valores los convertimos a NA). Se desarrolla en el apartado de limpieza de los datos.
 
 
 # 2. Integración y selección de los datos de interés a analizar
@@ -139,7 +143,7 @@ data$location[data$location == ""] <- NA
 * La variable `published_date` es de tipo character, la convertimos a tipo Date. 
 
 ```{r}
-# Extraer solo la parte de la fecha (sin la hora)
+# Extraemos la parte de la fecha (sin la hora)
 data$published_date <- substr(data$published_date, 1, 10)
 
 # Convertir a formato de fecha
@@ -193,10 +197,10 @@ data$image_px[filas_sin_x] <- NA
 
 
 ```{r}
-# Filtrar las filas que no tienen valores NA en la columna image_px
+# Filas que no tienen valores NA en la columna image_px
 sin_na <- complete.cases(data$image_px)
 
-# Dividir la cadena en dos partes (ancho y alto) solo para las filas sin NA
+# Extraer la cadena en dos partes (ancho y alto) para las filas sin NA
 dimensiones <- strsplit(data$image_px[sin_na], "x")
 
 # Convertir las partes a valores numéricos
@@ -236,10 +240,52 @@ Valores ausentes de cada variable:
 colSums(is.na(data))
 ```
 
+* Tratamiento de la variable `tags`: la convertimos en lista y sacamos la frecuencia de cada tag.
+
+```{r}
+
+# Función para limpiar y convertir las cadenas de tags en listas de tags
+clean_and_split_tags <- function(tags_string) {
+  # Elimina corchetes y comillas
+  tags_string <- gsub("\\[|\\]|'", "", tags_string)  
+  if (tags_string == "") {
+    # Devuelve un vector vacío si la cadena está vacía
+    return(character(0))  
+  }
+  strsplit(tags_string, ", ")[[1]]  # Dividir la cadena en una lista de tags
+}
+
+# Aplicar la función a la columna de tags
+data$tags_list <- lapply(data$tags, clean_and_split_tags)
+
+# Crear lista total de tags
+all_tags <- unlist(data$tags_list)
+
+# Crear una tabla de frecuencias
+tag_frequencies <- table(all_tags)
+tag_frequencies <- sort(tag_frequencies, decreasing = TRUE)
+print(head(tag_frequencies))
+
+```
+
 
 # 4. Análisis de los datos
 4.1. Aplica un modelo supervisado y uno no supervisado a los datos y comenta los resultados obtenidos.
 4.2. Aplica una prueba por contraste de hipótesis. Ten en cuenta que algunas de estas pruebas requieren verificar previamente la normalidad y homocedasticidad de los datos.
+
+```{r}
+# modelo supervisado
+
+```
+
+```{r}
+# modelo no supervisado
+```
+
+```{r}
+# Contraste de hipótesis
+```
+
 
 # 5. Representación de los resultados a partir de tablas y gráficas
 Este apartado se puede responder a lo largo de la práctica, sin necesidad de concentrar todas
