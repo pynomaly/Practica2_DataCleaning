@@ -14,7 +14,7 @@ knitr::opts_chunk$set(echo = TRUE, results = 'markup')
 
 PREGUNTA/PROBLEMA A RESPONDER:
 
-Factores de los que depende el número de favoritos ()
+Factores de los que depende el número de favoritos.
 
 
 
@@ -128,7 +128,7 @@ summary(data)
 3.3. Identifica y gestiona los valores extremos.
 3.4. Justifica la necesidad de otros métodos de limpieza para este dataset en particular y, de ser necesario, aplícalos.
 
-* Conversión a categórica de la variable `search_topic`:
+* Conversión a factor de la variable categórica `search_topic`:
 
 ```{r}
 data$search_topic <- as.factor(data$search_topic)
@@ -187,7 +187,7 @@ filas_sin_x <- grep("x", data$image_px, invert = TRUE)
 nrow(data[filas_sin_x, "image_px", drop = FALSE])
 
 ```
-Estos datos podrían representar el número total de píxeles en la imagen, en lugar de especificar el ancho y el alto por separado.
+Hay 67 registros que no incluyen la x en el dato indicado. Estos datos podrían representar el número total de píxeles en la imagen, en lugar de especificar el ancho y el alto por separado.
 
 Opción: ignorar estos valores, convirtiéndolos en NA, porque no podemos saber si las imágenes son cuadradas (mismo ancho y alto)
 
@@ -268,24 +268,184 @@ print(head(tag_frequencies))
 
 ```
 
+* Creamos variable `favs` en 4 categorías
+
+```{r}
+# Normalizar la variable data$image_favs al rango [0, 1]
+data$image_favs_normalized <- (data$image_favs - min(data$image_favs)) / (max(data$image_favs) - min(data$image_favs))
+
+# Definir los cortes usando cuantiles
+quantile_bins <- quantile(data$image_favs, probs = seq(0, 1, by = 0.25))
+
+# Etiquetas para las categorías
+quantile_labels <- c("Very Low", "Low", "Medium", "High")
+
+# Convertir la variable en categórica usando los cuantiles
+data$image_favs_cat <- cut(data$image_favs, breaks = quantile_bins, labels = quantile_labels, include.lowest = TRUE)
+
+# Verificar la distribución de las categorías
+table(data$image_favs_cat)
+
+```
+
+```{r}
+# Ver los rangos de cada categoría
+max_values_quantiles <- aggregate(image_favs ~ image_favs_cat, data = data, max)
+min_values_quantiles <- aggregate(image_favs ~ image_favs_cat, data = data, min)
+
+```
+
 
 # 4. Análisis de los datos
 4.1. Aplica un modelo supervisado y uno no supervisado a los datos y comenta los resultados obtenidos.
 4.2. Aplica una prueba por contraste de hipótesis. Ten en cuenta que algunas de estas pruebas requieren verificar previamente la normalidad y homocedasticidad de los datos.
 
+
 ```{r}
-# modelo supervisado
+#  Partición de los datos
+
+library(caret)
+library(randomForest)
+
+set.seed(123)
+
+trainIndex <- createDataPartition(data$image_favs_cat, p = .8, list = FALSE, times = 1)
+data_train <- data[trainIndex,]
+data_test <- data[-trainIndex,]
+
+# Eliminar las variables de texto y la numérica de image_favs
+selected_vars = c('image_favs_cat', 'search_topic', 'page_num', 'image_com', 'image_views', 'image_size', 'published_date', 'image_license')
+
+data_train <- data_train[ , (names(data_train) %in% selected_vars)]
+data_test <- data_test[ , (names(data_test) %in% selected_vars)]
+
+# Eliminar filas con valores perdidos en data_train y data_test
+data_train <- data_train[complete.cases(data_train), ]
+data_test <- data_test[complete.cases(data_test), ]
 
 ```
 
-```{r}
-# modelo no supervisado
-```
+La variable objetivo del modelo supervisado es image_favs_cat, que contiene 4 categorías que agrupan al número de favs que tiene una imagen (very low, low, medium, high).  En este caso, tu problema es de clasificación y no de regresión, ya que image_favs_cat contiene categorías en lugar de valores numéricos continuos. Vamos a usar un modelo supervisado de clasificación, como Random Forest, para predecir estas categorías.
+
 
 ```{r}
-# Contraste de hipótesis
+# Modelo supervisado: modelo de Random Forest
+set.seed(42)
+rf_model <- randomForest(image_favs_cat ~ ., data = data_train, importance = TRUE)
+
+# Predicciones
+predictions <- predict(rf_model, data_test)
+
+# Evaluar el modelo
+conf_matrix <- confusionMatrix(predictions, data_test$image_favs_cat)
+
+# Mostrar resultados
+print(conf_matrix)
+
 ```
 
+
+Matriz de Confusión:
+- **Very Low**: Clasificado correctamente 313 veces.
+- **Low**: Clasificado correctamente 263 veces.
+- **Medium**: Clasificado correctamente 258 veces.
+- **High**: Clasificado correctamente 283 veces.
+
+Overall Statistics:
+- **Accuracy**: 0.8088 (80.88%)
+El modelo clasifica correctamente aproximadamente el 80.88% de las instancias.
+
+- **95% CI**: (0.7871, 0.8293)
+El intervalo de confianza del 95% para la precisión se encuentra entre 78.71% y 82.93%.
+
+- **No Information Rate (NIR)**: 0.2571
+La tasa de no información indica la precisión que se obtendría al clasificar siempre en la clase más frecuente.
+
+- **P-Value [Acc > NIR]**: < 2.2e-16
+Indica que la precisión del modelo es significativamente mayor que la del modelo sin información.
+
+- **Kappa**: 0.745
+El índice de Kappa indica un buen acuerdo entre las predicciones del modelo y las clases reales.
+
+
+```{r}
+# Importancia de las variables
+importance(rf_model)
+```
+
+* El número de vistas de la imagen es la variable más importante, lo que indica que tiene una gran influencia en la clasificación del número de favoritos. Parece lógico que cuanto más vista es una imagen, más personas la podrán marcar como favorita.
+
+-> Crear otro indicador mejor: image_favs / image_views
+
+* También son importantes para predecir el número de favoritos el número de comentarios, la fecha de publicación de la imagen, el tema de búsqueda y el tamaño de la imagen.
+
+- **Precisión del Modelo**: La precisión del modelo es buena (80.88%), con una alta sensibilidad y especificidad en la mayoría de las clases.
+- **Importancia de las Variables**: Las variables `image_views`, `image_com`, `published_date`, `search_topic` y `image_size` son las más influyentes en la clasificación del número de favoritos de las imágenes.
+
+
+# Modelo no supervisado: clustering
+
+```{r}
+# modelo no supervisado usando clustering
+
+# Seleccionar las variables numéricas para el clustering
+data_numeric <- data_clean[, sapply(data_clean, is.numeric)]
+
+# Escalar las variables numéricas
+data_scaled <- scale(data_numeric)
+
+# Aplicar el algoritmo k-means
+set.seed(123)  # Para reproducibilidad
+k <- 4  # Número de clústeres
+kmeans_res <- kmeans(data_scaled, centers = k)
+
+# Obtener los clústeres asignados a cada observación
+cluster_labels <- kmeans_res$cluster
+
+# Visualizar los resultados del clustering
+table(cluster_labels)
+
+# Resumen de los centroides de los clústeres
+kmeans_res$centers
+
+
+```
+
+* Cluster 1: Este clúster parece estar compuesto por observaciones con valores relativamente altos en variables como image_favs, image_com e image_views, lo que sugiere que estas observaciones podrían representar imágenes populares con un alto número de favoritos, comentarios y vistas. Sin embargo, estas imágenes parecen estar distribuidas en varias páginas de búsqueda (page_num), lo que podría indicar una amplia distribución en diferentes contextos o temas.
+
+* Cluster 2: Este clúster muestra valores altos en image_size, lo que podría indicar que las imágenes en este clúster son de mayor tamaño en términos de peso de archivo. Sin embargo, tienen valores más bajos en image_favs, image_com e image_views, lo que sugiere que estas imágenes podrían ser menos populares en términos de interacción y vistas. La baja page_num también puede indicar que estas imágenes están más concentradas en páginas específicas de búsqueda.
+
+* Cluster 3: Este clúster se caracteriza por tener un valor alto en la variable superficie, lo que podría sugerir que estas imágenes tienen dimensiones físicas más grandes en términos de tamaño de píxeles o área de imagen. Sin embargo, las otras variables numéricas parecen estar en valores más moderados.
+
+* Cluster 4: Este clúster muestra valores bajos en la mayoría de las características, lo que podría indicar un grupo de observaciones que son atípicas en términos de sus características numéricas en comparación con los otros clústeres. Es posible que estas observaciones representen un grupo separado de imágenes con características distintivas.
+
+
+
+**Contraste de Hipótesis**
+
+$H_0$: No hay asociación entre el tema de búsqueda (`search_topic`) y la categoría del número de favoritos (`image_favs_cat`).
+$H_1$: Existe una asociación entre el tema de búsqueda (`search_topic`) y la categoría del número de favoritos (`image_favs_cat`).
+
+
+```{r}
+# Contraste de hipótesis, Test de Chi-cuadrado
+
+
+# Crear una tabla de contingencia
+contingency_table <- table(data$search_topic, data$image_favs_cat)
+
+# Realizar el test de Chi-cuadrado
+chi_square_test <- chisq.test(contingency_table)
+
+# Resumen del test de Chi-cuadrado
+print(chi_square_test)
+
+
+```
+
+El resultado del test de Chi-cuadrado indica una asociación altamente significativa entre el tema de búsqueda (search_topic) y la categoría del número de favoritos (image_favs_cat). El valor del estadístico de Chi-cuadrado es muy alto (2812.8), lo que sugiere que las diferencias observadas entre las frecuencias esperadas y observadas en la tabla de contingencia son significativas. Además, el p-valor es extremadamente pequeño (< 2.2e-16), lo que indica que la probabilidad de obtener estos resultados bajo la hipótesis nula (que no hay asociación entre las variables) es prácticamente nula.
+
+Esto sugiere que el tema de búsqueda influye en la popularidad de las imágenes, lo que puede tener implicaciones importantes para la optimización de la búsqueda y la promoción de contenidos en tu plataforma.
 
 # 5. Representación de los resultados a partir de tablas y gráficas
 Este apartado se puede responder a lo largo de la práctica, sin necesidad de concentrar todas
