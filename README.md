@@ -15,7 +15,7 @@ Específicamente, queremos responder las siguientes preguntas:
 Al entender estos factores, no solo podremos predecir mejor el número de favoritos que puede recibir una imagen, sino también ofrecer recomendaciones a los artistas sobre cómo optimizar sus publicaciones para aumentar su visibilidad y popularidad en la plataforma.
 
 ## Conjunto de datos utilizado
-El [conjunto de datos utilizado]() es el resultado del ejercicio de scraping de la web DeviantArt, que se puede encontrar en este [repositorio](). 
+El [conjunto de datos utilizado](https://github.com/pynomaly/Practica2_DataCleaning/blob/main/data/images_db.csv) es el resultado del ejercicio de scraping de la web DeviantArt, que se puede encontrar en este [repositorio](https://github.com/EstebanBraganza77/Web-Scrapping-Practica1/tree/main). 
 
 El fichero de datos contiene 7067 registros y 18 variables:
 * `search_topic`: la imagen es resultado de la búsqueda por este tema
