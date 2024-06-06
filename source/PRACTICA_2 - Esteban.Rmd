@@ -174,7 +174,7 @@ ggplot(data, aes(x = image_views)) +
   theme_minimal()
 ```
 
-Esto indica la presencia de outliers en esta variable.Además que es mucho más sesgada a la iziquierda que las variables de comentarios y favoritos en donde podemos ver que la mayoría de imágenes tienen una exposición muy baja por lo que seguramente se podrá relacionar a su ubicación en la búsqueda o en el número de página en la que se encuentran. 
+Esto indica la presencia de outliers en esta variable. Además que es mucho más sesgada a la iziquierda que las variables de comentarios y favoritos en donde podemos ver que la mayoría de imágenes tienen una exposición muy baja por lo que seguramente se podrá relacionar a su ubicación en la búsqueda o en el número de página en la que se encuentran. 
 
 -   La variable `private_collections` es numérica, con un valor mínimo de `r min(data$private_collections)`, un valor máximo de `r max(data$private_collections)`, una media de `r round(mean(data$private_collections), 2)`, con esta distribución:
 
@@ -804,8 +804,6 @@ Tras completar el proceso de clusterización, examinamos los diferentes grupos r
 
 Hemos decidido analizar 4 clústeres, aunque hemos tenido resultados contrarios en el método de la silueta y del codo. El primero nos indicaba un número de 2 clusters mientras que el método del codo al menos 4 clústeres. Hemos decidido ir por 4 clústeres para una mejor separación de características.
 
-
-
 ```{r}
 
 # Calcular las medias de las variables seleccionadas por clúster
@@ -867,16 +865,32 @@ Se debe representar tanto el contenido del dataset para observar las proporcione
 
 # 6. Resolución del problema
 
-Basándonos en los resultados obtenidos del modelo de Random Forest y del análisis de clústeres aplicados a nuestra colección de imágenes de DevianArt, podemos llegar a las siguientes conclusiones específicas:
+El objetivo de este ejercicio era responder a las siguientes preguntas, que se planteaban al inicio:
 
-- **Variable Importancia del Random Forest:** El análisis de la importancia de las variables realizado mediante el modelo de Random Forest indica que las características más influyentes en la predicción del número de favoritos de las imágenes son el número de vistas (image_views), el número de comentarios (image_com), y el tamaño de la imagen en píxeles (superficie_px2).
+**1. ¿Qué características de las imágenes (como tamaño, resolución y número de comentarios) están más correlacionadas con el número de favoritos?**
 
-- **Interpretación de los Clústeres:** Mediante el análisis de clústeres, hemos identificado cuatro grupos distintos de imágenes basados en sus características comunes. Por ejemplo, el clúster 1 se caracteriza por imágenes con una alta resolución (superficie_px2) y tamaño de imagen (image_size_kb), pero con baja exposición en términos de vistas, comentarios y favoritos. En contraste, el clúster 2 presenta imágenes con un alto número de comentarios, vistas y favoritos, pero con un tamaño de imagen más moderado.
+El análisis de la importancia de las variables realizado mediante el modelo de Random Forest indica que las características más influyentes en la predicción del número de favoritos de las imágenes son el número de vistas (image_views), el número de comentarios (image_com), y el tamaño de la imagen en píxeles (superficie_px2).
 
-- **Concordancia entre Modelos y Clústeres:** Examinando la relación entre las características importantes identificadas por el modelo de Random Forest y los perfiles de los clústeres, encontramos que ciertos clústeres están asociados con características destacadas por el modelo. Por ejemplo, el clúster 2, que comprende imágenes altamente populares en términos de comentarios, vistas y favoritos, también muestra una importancia significativa de estas características en el modelo de Random Forest.
+**2. ¿Cómo influyen las variables temporales (como el día de la semana y el momento del día en que se publica una imagen) en la cantidad de favoritos?**
 
-- **Respuesta al Problema:** A partir de estos análisis, podemos concluir que los resultados obtenidos permiten abordar satisfactoriamente el problema planteado de entender qué características influyen en la popularidad de las imágenes en DevianArt. Los clústeres identificados nos ayudan a segmentar y comprender mejor la diversidad de imágenes en la plataforma, mientras que las características importantes del modelo nos proporcionan información sobre los factores que contribuyen significativamente a la popularidad de estas imágenes.
+Tanto el día de la semana como el momento del día en que se publica la imagen no son relevantes a la hora de determinar el número de favs que obtendrá una imagen.
 
-En general utilizando el dataset de DevianArt obtenido podemos predecir de forma precisa el nivel de favoritos que reciben estas imágenes y recomendar cuáles serían los temas y motivos de las imágenes que más influirán en que la valoración de una imagen sea mejor que otras. 
+**3. ¿Qué temas de búsqueda son más propensos a recibir un alto número de favoritos?**
 
---> Falta incorporar contraste de hipótesis a estas conclusiones?
+A partir del contraste de hipótesis, hemos visto que el tema de búsqueda (variable search_topic) influye en la popularidad de las imágenes. 
+
+Los temas más propensos a obtener un número significativo de favs (nivel Medium o High en la variable `image_favs_cat`) son:
+
+* Fantasy art: 178 (High), 133 (Medium). `r round(sum(178+133)/356*100, 2)`% del total.
+* Landscape art: 150 (High), 145 (Medium). `r round(sum(150+145)/351*100, 2)` del total.
+* Character designs: 160 (High), 119 (Medium). `r round(sum(160+119)/343*100, 2)` del total.
+* Concept art: 119 (High), 119 (Medium). `r round(sum(119+119)/354*100, 2)` del total.
+* Horror art: 93 (High), 133 (Medium). `r round(sum(93+133)/355*100, 2)` del total.
+
+**4. ¿Existen patrones específicos en la comunidad de DeviantArt que puedan predecir la popularidad de una imagen?**
+
+Mediante el análisis de clústeres, hemos identificado cuatro grupos distintos de imágenes basados en sus características comunes. Por ejemplo, el clúster 1 se caracteriza por imágenes con una alta resolución (superficie_px2) y tamaño de imagen (image_size_kb), pero con baja exposición en términos de vistas, comentarios y favoritos. En contraste, el clúster 2 presenta imágenes con un alto número de comentarios, vistas y favoritos, pero con un tamaño de imagen más moderado.
+
+Examinando la relación entre las características importantes identificadas por el modelo de Random Forest y los perfiles de los clústeres, encontramos que ciertos clústeres están asociados con características destacadas por el modelo. Por ejemplo, el clúster 2, que comprende imágenes altamente populares en términos de comentarios, vistas y favoritos, también muestra una importancia significativa de estas características en el modelo de Random Forest.
+
+A partir de estos análisis, podemos concluir que los resultados obtenidos permiten abordar satisfactoriamente el problema planteado de entender qué características influyen en la popularidad de las imágenes en DevianArt. Los clústeres identificados nos ayudan a segmentar y comprender mejor la diversidad de imágenes en la plataforma, mientras que las características importantes del modelo nos proporcionan información sobre los factores que contribuyen significativamente a la popularidad de estas imágenes.
