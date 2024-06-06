@@ -72,9 +72,7 @@ El fichero de datos contiene `r nrow(data)` registros y `r ncol(data)` variables
 En cuanto a la descripción de cada una de estas variables:
 
 -   Las variables `description`, `image_title` y `last_comment` son campos de texto abiertos.
-
 -   Las variables `image_url`, `image_page` incluyen los enlaces a la página de la imagen y a la imagen en sí.
-
 -   La variable `search_topic` incluye `r length(unique(data$search_topic))` posibilidades, que son: `r toString(unique(data$search_topic))`. Las frecuencias de cada una de estas categorías en el conjunto de datos es esta:
 
 ```{r}
@@ -418,10 +416,6 @@ train <-prep(recipe, data_parsed)
 ```
 
 
--> NOTA: Guardamos aquí el data_parsed como csv limpio?
-
-# 4. Análisis de los datos
-
 ## Preparación de datos
 
 Este fragmento de código realiza las siguientes operaciones:
@@ -502,11 +496,6 @@ data_train %>%
 
 ### Análisis de Correlación entre Variables
 
-Al analizar la correlación entre las variables, observamos que solo existe una alta correlación entre las variables `image_com` e `image_views`, con un coeficiente de correlación de 0.7. Esta alta correlación podría no ser tan problemática para incluirlas en el análisis, ya que no alcanza el umbral de 0.8 que a menudo se considera crítico para la multicolinealidad. La multicolinealidad puede afectar la interpretación de los coeficientes en los modelos de regresión, pero con un valor de correlación de 0.7, es probable que las variables aún aporten información única y valiosa al modelo.
-
-Por otro lado, las demás variables presentan valores de correlación más bajos, lo que indica que no están fuertemente correlacionadas entre sí. Esto es deseable ya que permite que cada variable proporcione información única y diversa al modelo de predicción, evitando redundancias y mejorando la capacidad del modelo para capturar la variabilidad en los datos.
-
-
 ```{r}
 data_train %>%
   select_if(is.numeric) %>%
@@ -525,18 +514,12 @@ data_train %>%
 
 ```
 
+Al analizar la correlación entre las variables, observamos que solo existe una alta correlación entre las variables `image_com` e `image_views`, con un coeficiente de correlación de 0.7. Esta alta correlación podría no ser tan problemática para incluirlas en el análisis, ya que no alcanza el umbral de 0.8 que a menudo se considera crítico para la multicolinealidad. La multicolinealidad puede afectar la interpretación de los coeficientes en los modelos de regresión, pero con un valor de correlación de 0.7, es probable que las variables aún aporten información única y valiosa al modelo.
+
+Por otro lado, las demás variables presentan valores de correlación más bajos, lo que indica que no están fuertemente correlacionadas entre sí. Esto es deseable ya que permite que cada variable proporcione información única y diversa al modelo de predicción, evitando redundancias y mejorando la capacidad del modelo para capturar la variabilidad en los datos.
+
+
 ### Análisis de Scatter Plots
-
-Al realizar los siguientes scatter plots entre las variables predictoras y la variable objetivo, observamos lo siguiente:
-
-1. **Scatter Plot 1: image_size_kb vs superficie_px2**:
-   - En este gráfico, no se observa una clara separación de los grupos de la variable objetivo (`image_favs_cat`). Los puntos se distribuyen de manera dispersa y no muestran una tendencia definida que permita distinguir claramente entre las diferentes categorías de la variable objetivo.
-
-2. **Scatter Plot 2: image_com vs image_views**:
-   - En este gráfico, se observa una mejor separación de los grupos de la variable objetivo (`image_favs_cat`). Se puede notar claramente cómo los valores más altos en las variables `image_com` y `image_views` tienden a estar asociados con los grupos "High" y "Medium", mientras que los valores más bajos se relacionan con los grupos "Low" y "Very Low". Esta separación sugiere que estas variables pueden ser buenas predictoras de la variable objetivo.
-
-En resumen, mientras que las variables `image_views` y `image_com` muestran una clara separación de los grupos de la variable objetivo, las variables `image_size_kb` y `superficie_px2` no parecen ser tan efectivas para distinguir entre las diferentes categorías de la variable objetivo.
-
 
 ```{r}
 # Crear los scatter plots
@@ -558,27 +541,22 @@ plot2 <-
 # Crear un grid de los scatter plots
 library(gridExtra)
 grid.arrange(plot1, plot2, ncol = 1, nrow=2)
-
 ```
 
+En estos scatter plots entre las variables predictoras y la variable objetivo, observamos lo siguiente:
+
+1. **Scatter Plot 1: image_size_kb vs superficie_px2**:
+   - En este gráfico, no se observa una clara separación de los grupos de la variable objetivo (`image_favs_cat`). Los puntos se distribuyen de manera dispersa y no muestran una tendencia definida que permita distinguir claramente entre las diferentes categorías de la variable objetivo.
+
+2. **Scatter Plot 2: image_com vs image_views**:
+   - En este gráfico, se observa una mejor separación de los grupos de la variable objetivo (`image_favs_cat`). Se puede notar claramente cómo los valores más altos en las variables `image_com` y `image_views` tienden a estar asociados con los grupos "High" y "Medium", mientras que los valores más bajos se relacionan con los grupos "Low" y "Very Low". Esta separación sugiere que estas variables pueden ser buenas predictoras de la variable objetivo.
+
+En resumen, mientras que las variables `image_views` y `image_com` muestran una clara separación de los grupos de la variable objetivo, las variables `image_size_kb` y `superficie_px2` no parecen ser tan efectivas para distinguir entre las diferentes categorías de la variable objetivo.
+
+
+
+
 ### Análisis de Gráficos de Densidad (KDE Plots)
-
-Al analizar los siguientes gráficos de densidad de las variables predictoras en relación con la variable objetivo (`image_favs_cat`), observamos lo siguiente:
-
-1. **KDE Plot 1: image_size_kb**:
-   - En este gráfico de densidad, no se observa una clara diferencia en las distribuciones de las diferentes categorías de la variable objetivo. Las curvas de densidad se superponen en gran medida, lo que sugiere que la variable `image_size_kb` puede no ser muy discriminativa para predecir la variable objetivo.
-
-2. **KDE Plot 2: superficie_px2**:
-   - Al igual que en el gráfico anterior, las distribuciones de las diferentes categorías de la variable objetivo se superponen considerablemente. Esto indica que la variable `superficie_px2` puede no ser muy útil para distinguir entre las diferentes categorías de la variable objetivo.
-
-3. **KDE Plot 3: image_com**:
-   - En este gráfico de densidad, se observa una clara diferencia en las distribuciones de las diferentes categorías de la variable objetivo. Cada grupo de la variable objetivo (`image_favs_cat`) se distribuye en niveles más altos de `image_com`, confirmando lo observado en los scatterplots anteriores.
-
-4. **KDE Plot 4: image_views**:
-   - De manera similar al gráfico anterior, se observa una clara diferencia en las distribuciones de las diferentes categorías de la variable objetivo. Cada grupo de la variable objetivo se distribuye en niveles más altos de `image_views`, confirmando lo observado en los scatterplots anteriores.
-
-En resumen, los gráficos de densidad confirman que las variables `image_views` e `image_com` muestran distribuciones especialmente diferentes para cada grupo de la variable objetivo, lo que sugiere que estas variables pueden ser predictores importantes de la variable objetivo.
-
 
 ```{r}
 # KDE plot 1: image_size_kb vs superficie_px2
@@ -621,21 +599,26 @@ grid.arrange(kde_plot1, kde_plot2, kde_plot3, kde_plot4, nrow = 4)
 
 ```
 
+Al analizar estos gráficos de densidad de las variables predictoras en relación con la variable objetivo (`image_favs_cat`), observamos lo siguiente:
+
+1. **KDE Plot 1: image_size_kb**:
+   - En este gráfico de densidad, no se observa una clara diferencia en las distribuciones de las diferentes categorías de la variable objetivo. Las curvas de densidad se superponen en gran medida, lo que sugiere que la variable `image_size_kb` puede no ser muy discriminativa para predecir la variable objetivo.
+
+2. **KDE Plot 2: superficie_px2**:
+   - Al igual que en el gráfico anterior, las distribuciones de las diferentes categorías de la variable objetivo se superponen considerablemente. Esto indica que la variable `superficie_px2` puede no ser muy útil para distinguir entre las diferentes categorías de la variable objetivo.
+
+3. **KDE Plot 3: image_com**:
+   - En este gráfico de densidad, se observa una clara diferencia en las distribuciones de las diferentes categorías de la variable objetivo. Cada grupo de la variable objetivo (`image_favs_cat`) se distribuye en niveles más altos de `image_com`, confirmando lo observado en los scatterplots anteriores.
+
+4. **KDE Plot 4: image_views**:
+   - De manera similar al gráfico anterior, se observa una clara diferencia en las distribuciones de las diferentes categorías de la variable objetivo. Cada grupo de la variable objetivo se distribuye en niveles más altos de `image_views`, confirmando lo observado en los scatterplots anteriores.
+
+En resumen, los gráficos de densidad confirman que las variables `image_views` e `image_com` muestran distribuciones especialmente diferentes para cada grupo de la variable objetivo, lo que sugiere que estas variables pueden ser predictores importantes de la variable objetivo.
+
+
+
+
 ### Conclusiones de los Gráficos de Barras
-
-Al analizar los gráficos de barras de las variables categóricas en relación con la variable objetivo (`image_favs_cat`), se observan las siguientes tendencias:
-
-1. **Variables Temporales**:
-   - Las variables temporales, como el día de la semana y el momento del día, no parecen diferir significativamente en el número de imágenes con los distintos niveles de `image_favs_cat`, con la excepción de las imágenes publicadas en enero, que tienen más casos en la categoría "Very Low" que en otras.
-
-2. **Search Topic**:
-   - El tema de búsqueda parece influir en la popularidad de las imágenes. Por ejemplo, las imágenes relacionadas con "Manga Art", "Character Design Fantasy" y "Gothic Art" son las más apreciadas, ya que tienen más casos con un nivel "High" de favoritos. En contraste, las imágenes relacionadas con "Fan Arts" y "Street Art Graffiti" tienden a tener más valores "Very Low", lo que sugiere que son menos apreciadas. "Science Fiction", "Steampunk Art" y "Pixel Art" tienen más valores "Low". 
-
-3. **Private Collections**:
-   - Las imágenes que han sido incluidas en al menos una colección privada tienden a tener valores "High" de favoritos, lo que sugiere que la exclusividad o el reconocimiento por parte de otros usuarios puede influir en la popularidad de las imágenes.
-
-En resumen, el tema de búsqueda y la inclusión en colecciones privadas parecen influir en la popularidad de las imágenes, mientras que las variables temporales no muestran diferencias significativas en la distribución de los niveles de favoritos.
-
 
 ```{r}
 # Bar plot for day_of_week
@@ -699,12 +682,29 @@ print(bar_plot4)
 print(bar_plot5)
 print(bar_plot6)
 
-
 ```
 
-## Creación de modelo supervisado, no supervisados y contraste de hipótesis
+Al analizar los gráficos de barras de las variables categóricas en relación con la variable objetivo (`image_favs_cat`), se observan las siguientes tendencias:
 
-### Modelización utilizando random forest
+1. **Variables Temporales**:
+   - Las variables temporales, como el día de la semana y el momento del día, no parecen diferir significativamente en el número de imágenes con los distintos niveles de `image_favs_cat`, con la excepción de las imágenes publicadas en enero, que tienen más casos en la categoría "Very Low" que en otras.
+
+2. **Search Topic**:
+   - El tema de búsqueda parece influir en la popularidad de las imágenes. Por ejemplo, las imágenes relacionadas con "Manga Art", "Character Design Fantasy" y "Gothic Art" son las más apreciadas, ya que tienen más casos con un nivel "High" de favoritos. En contraste, las imágenes relacionadas con "Fan Arts" y "Street Art Graffiti" tienden a tener más valores "Very Low", lo que sugiere que son menos apreciadas. "Science Fiction", "Steampunk Art" y "Pixel Art" tienen más valores "Low". 
+
+3. **Private Collections**:
+   - Las imágenes que han sido incluidas en al menos una colección privada tienden a tener valores "High" de favoritos, lo que sugiere que la exclusividad o el reconocimiento por parte de otros usuarios puede influir en la popularidad de las imágenes.
+
+En resumen, el tema de búsqueda y la inclusión en colecciones privadas parecen influir en la popularidad de las imágenes, mientras que las variables temporales no muestran diferencias significativas en la distribución de los niveles de favoritos.
+
+
+-> NOTA: Guardamos aquí el data_parsed como csv limpio?
+
+# 4. Análisis de los datos
+
+Creación de modelo supervisado, no supervisados y contraste de hipótesis:
+
+## Modelización utilizando random forest
 
 Ahora que entendemos un poco qué variables separan mejor nuestros datos de acuerdo al nivel de favoritos recibidos realizaremos un random forest y analizaremos el rendimiento del modelo con los datos no vistos de test. 
 
@@ -746,7 +746,7 @@ importance(rf_model)
 -   **Importancia de las Variables**: Las variables `image_views`, `image_com`, `published_date`, `search_topic` y `image_size` son las más influyentes en la clasificación del número de favoritos de las imágenes.
 
 
-### Modelo no supervisado: clustering
+## Modelo no supervisado: clustering
 
 ### Objetivo del Análisis de Clusterización de Imágenes
 
@@ -755,13 +755,6 @@ El objetivo principal de nuestro análisis de clusterización de imágenes es id
 ### Método de Clusterización
 
 Para lograr este objetivo, aplicamos el algoritmo de k-means a nuestras imágenes seleccionadas, con el fin de agruparlas en un número específico de clústeres. Utilizamos métricas como el método del codo y el criterio de la silueta para determinar el número óptimo de clústeres que mejor representan la estructura subyacente de nuestros datos. Una vez seleccionado el número adecuado de clústeres, asignamos cada imagen a un clúster específico en función de sus características.
-
-### Interpretación de los Resultados
-
-Tras completar el proceso de clusterización, examinamos los diferentes grupos resultantes para identificar patrones y características distintivas en cada uno. Por ejemplo, podemos encontrar clústeres que contienen imágenes altamente populares y ampliamente apreciadas, clústeres con imágenes menos conocidas pero de alta calidad, y clústeres con características específicas, como tamaño de archivo más pequeño o superficie más grande. Esta interpretación nos proporciona una comprensión más profunda de la diversidad de imágenes en nuestra colección y nos ayuda a organizarlas de manera más efectiva para futuros análisis y aplicaciones prácticas.
-
-Hemos decidido analizar 4 clústeres, aunque hemos tenido resultados contrarios en el método de la silueta y del codo. El primero nos indicaba un número de 2 clusters mientras que el método del codo al menos 4 clústeres. Hemos decidido ir por 4 clústeres para una mejor separación de características.
-
 
 ```{r}
 # modelo no supervisado usando clustering
@@ -805,6 +798,13 @@ plot(data_kmeans[c(4,5)], col=kmeans_res$cluster, main="Clasificación k-means")
 
 
 ```
+### Interpretación de los Resultados
+
+Tras completar el proceso de clusterización, examinamos los diferentes grupos resultantes para identificar patrones y características distintivas en cada uno. Por ejemplo, podemos encontrar clústeres que contienen imágenes altamente populares y ampliamente apreciadas, clústeres con imágenes menos conocidas pero de alta calidad, y clústeres con características específicas, como tamaño de archivo más pequeño o superficie más grande. Esta interpretación nos proporciona una comprensión más profunda de la diversidad de imágenes en nuestra colección y nos ayuda a organizarlas de manera más efectiva para futuros análisis y aplicaciones prácticas.
+
+Hemos decidido analizar 4 clústeres, aunque hemos tenido resultados contrarios en el método de la silueta y del codo. El primero nos indicaba un número de 2 clusters mientras que el método del codo al menos 4 clústeres. Hemos decidido ir por 4 clústeres para una mejor separación de características.
+
+
 
 ```{r}
 
