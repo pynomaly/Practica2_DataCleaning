@@ -38,7 +38,7 @@ El fichero de datos contiene 7067 registros y 18 variables:
 
 El ejercicio incluye la integración y selección de los datos, la limpieza de los datos, el análisis de los datos, incluyendo un modelo supervisado, un modelo no supervisado y un contraste de hipótesis, la representación de los resultados y la resolución del problema.
 
-El código se puede encontrar en [RMarkdown]() y un [script de R]().
+El código se puede encontrar en [RMarkdown](https://github.com/pynomaly/Practica2_DataCleaning/blob/main/source/PRACTICA_2.Rmd) y un [script de R](https://github.com/pynomaly/Practica2_DataCleaning/blob/main/source/PRACTICA_2.R).
 
 # Licencia
 Este proyecto se encuentra bajo licencia [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/legalcode), que permite la redistribución y reutilización de una obra con la condición de que el creador reciba el crédito adecuado.
