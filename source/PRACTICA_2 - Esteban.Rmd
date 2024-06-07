@@ -23,7 +23,6 @@ library(skimr) # Descriptivas univariadas masivas
 library(ggplot2)
 library(rpart) # Arboles
 library(rpart.plot) # Graficar arboles
-
 ```
 
 # 1. Descripción del dataset
@@ -42,7 +41,6 @@ Específicamente, queremos responder las siguientes preguntas:
 4. ¿Existen patrones específicos en la comunidad de DeviantArt que puedan predecir la popularidad de una imagen?
 
 Al entender estos factores, no solo podremos predecir mejor el número de favoritos que puede recibir una imagen, sino también ofrecer recomendaciones a los artistas sobre cómo optimizar sus publicaciones para aumentar su visibilidad y popularidad en la plataforma.
-
 
 ```{r}
 # Carga del conjunto de datos
@@ -280,19 +278,28 @@ Por otro lado se transformará en una misma unidad a la variable `image_size` se
 
 # 2. Integración y selección de los datos de interés a analizar
 
+Se decide trabajar con todos los datos del conjunto de datos, seleccionando inicialmente aquellas columnas que nos parecen de interés:
+
+- Elegimos variables que nos parecen relevantes para un análisis numérico mientras que dejamos fuera otras variables de texto libre, como `description`, `image_url`, `image_page`, `last_comment`. 
+
+- La variable `location` tiene un alto porcentaje de valores vacíos (""), que constituyen el `r round((nrow(data[data$location == "", ]) / nrow(data)) * 100, 2)`% de los registros. Decidimos descartar esta variable.
+
+
 ```{r}
+# Selección de variables relevantes 
+useful_columns <- c("search_topic", "page_num", "image_id", 
+       "image_author", "image_title", "image_favs",
+       "image_com", "image_views","private_collections", 
+       "tags", "image_px", "image_size", "published_date", "image_license")
+
+data <- data %>% 
+  dplyr::mutate(image_id = str_extract(image_page, "\\d+$") ) %>%
+  dplyr::select(all_of(useful_columns)) 
+
 summary(data)
 ```
 
-Se decide trabajar con todos los datos del conjunto de datos, seleccionando aquellas columnas que nos parecen de interés.
-
-Elegimos variables que nos parecen relevantes para un análisis numérico mientras que dejamos fuera otras variables de texto libre, como `description`, `image_url`, `image_page`, `last_comment`. 
-
-Eliminanos las variables con gran número de NA (`location`). Mantener una de las dos variables de dimensiones: `size` o `superficie`, eliminar la otra si es que encontramos una correlación grande entre las dos.
-
-La variable `location` tiene un alto porcentaje de valores vacíos (""), que constituyen el `r round((nrow(data[data$location == "", ]) / nrow(data)) * 100, 2)`% de los registros. Decidimos descartar esta variable.
-
-Esta selección de variables será parte de la limpieza de datos, que se hará en el siguiente apartado, una vez hecho el proceso de análisis de la importancia de las variables para responder al problema planteado.
+En la etapa de limpieza de los datos y en la de exploración de importancia de las variables de cara a la variable objetivo se hará una nueva selección de variables. Se eliminarán aquellos registros con valores ausentes, que representan un número muy pequeño del conjunto, y 
 
 # 3. Limpieza de los datos
 
@@ -341,7 +348,7 @@ colSums(is.na(data))
 
 ```{r}
 
-# Preprocesado de datos para dejarlos en un formato más útil que al inicio
+# Preprocesado de datos para dejarlos en un formato más útil que al inicio.
 data_parsed <- data %>%
   mutate(search_topic = as.factor(search_topic),
         published_date = as_datetime(published_date),
@@ -400,19 +407,16 @@ recipe <- data_parsed %>%
                            "image_com", "image_views", "image_favs"))  
 
 train <-prep(recipe, data_parsed)
-data_preprocessed <- bake(train, data_parsed)
 
-# Guardamos el dataframe procesado a un archivo
-write.csv(data_preprocessed, file = "../data/images_db_preprocessed.csv", row.names = FALSE)
-
-# Mostramos resultado del proceso de limpieza
-summary(data_preprocessed)
 ```
+
+
+-> NOTA: Guardamos aquí el data_parsed como csv limpio?
 
 # 4. Análisis de los datos
 
 Previamente a la creación de los modelos y del contraste de hipótesis, realizamos una series de pasos de **preparación de los datos**:
- 
+
 - Se establece una semilla para asegurar que los resultados sean reproducibles cada vez que se ejecuta el código.
 - Se divide el conjunto de datos `data_parsed` en conjuntos de entrenamiento (80%) y prueba (20%) de manera estratificada, asegurando que la distribución de la variable `image_favs_cat` se mantenga en ambos conjuntos.
 - Se aplican las transformaciones definidas en la receta de preprocesamiento (`train`) tanto al conjunto de entrenamiento como al conjunto de prueba.
@@ -421,7 +425,6 @@ Previamente a la creación de los modelos y del contraste de hipótesis, realiza
 
 ```{r}
 #  Partición de los datos
-
 library(caret)
 library(randomForest)
 
@@ -432,7 +435,7 @@ trainIndex <- createDataPartition(data_parsed$image_favs_cat, p = .8, list = FAL
 data_train <- bake(train, new_data = data_parsed[trainIndex,])
 data_test <- bake(train, new_data = data_parsed[-trainIndex,])
 
-# Eliminar las variables de texto y la numérica de image_favs
+# Eliminanos la variable numérica de image_favs y la variable hour
 selected_vars = c('image_favs_cat', 'search_topic', 'page_num', 'image_com', 'image_views', 'image_size_kb', 'published_date', 'image_license',"year", "month", "day_of_week", "moment_of_day", "private_collections", "superficie_px2")
 
 data_train <- data_train[ , (names(data_train) %in% selected_vars)]
@@ -450,8 +453,6 @@ Antes de realizar esta modelización vamos a analizar los datos disponibles.
 
 
 ### Análisis de la Variable Objetivo
-
-Al analizar la variable objetivo `image_favs_cat`, observamos que tenemos un número balanceado de casos en cada una de las categorías. Esto significa que las clases de la variable `image_favs_cat` están bien representadas y distribuidas de manera equitativa en el conjunto de datos, lo que es beneficioso para el rendimiento de los modelos de predicción. Un conjunto de datos balanceado ayuda a evitar sesgos hacia una clase específica y permite que los algoritmos de aprendizaje automático aprendan de manera más efectiva las características de cada categoría.
 
 ```{r}
 # Ver los rangos de cada categoría
@@ -472,6 +473,8 @@ data_train %>%
     theme_bw()
 
 ```
+
+Al analizar la variable objetivo `image_favs_cat`, observamos que tenemos un número balanceado de casos en cada una de las categorías. Esto significa que las clases de la variable `image_favs_cat` están bien representadas y distribuidas de manera equitativa en el conjunto de datos, lo que es beneficioso para el rendimiento de los modelos de predicción. Un conjunto de datos balanceado ayuda a evitar sesgos hacia una clase específica y permite que los algoritmos de aprendizaje automático aprendan de manera más efectiva las características de cada categoría.
 
 ### Análisis de Correlación entre Variables
 
@@ -592,6 +595,7 @@ Al analizar estos gráficos de densidad de las variables predictoras en relació
 
 En resumen, los gráficos de densidad confirman que las variables `image_views` e `image_com` muestran distribuciones especialmente diferentes para cada grupo de la variable objetivo, lo que sugiere que estas variables pueden ser predictores importantes de la variable objetivo.
 
+
 ### Gráficos de Barras de las variables categóricas en relación con la variable objetivo
 
 ```{r}
@@ -692,7 +696,6 @@ conf_matrix <- confusionMatrix(predictions, data_test$image_favs_cat)
 print(conf_matrix)
 
 ```
-
 Conclusiones:
 
 - Según el dato correspondiente a la Accuracy, el modelo clasifica correctamente aproximadamente el 82.23% de las imágenes.
@@ -709,10 +712,9 @@ importance(rf_model)
 
 - El número de vistas de la imagen es la variable más importante, lo que indica que tiene una gran influencia en la clasificación del número de favoritos. Parece lógico que cuanto más vista es una imagen, más personas la podrán marcar como favorita.
 
-
 - También son importantes para predecir el número de favoritos el número de comentarios, la fecha de publicación de la imagen, el tema de búsqueda y el tamaño de la imagen.
 
-- En conclusión, las variables `image_views`, `image_com`, `published_date`, `search_topic` y `image_size` son las más influyentes en la clasificación del número de favoritos de las imágenes.
+En conclusión, `image_views`, `image_com`, `published_date`, `search_topic` y `image_size` son las más influyentes en la clasificación del número de favoritos de las imágenes.
 
 
 ## Modelo no supervisado: clustering
@@ -763,7 +765,6 @@ plot(data_kmeans[c(4,5)], col=kmeans_res$cluster, main="Clasificación k-means")
 
 
 ```
-
 Tras completar el proceso de clusterización, examinamos los diferentes grupos resultantes para identificar patrones y características distintivas en cada uno. Por ejemplo, podemos encontrar clústeres que contienen imágenes altamente populares y ampliamente apreciadas, clústeres con imágenes menos conocidas pero de alta calidad, y clústeres con características específicas, como tamaño de archivo más pequeño o superficie más grande. Esta interpretación nos proporciona una comprensión más profunda de la diversidad de imágenes en nuestra colección y nos ayuda a organizarlas de manera más efectiva para futuros análisis y aplicaciones prácticas.
 
 Hemos decidido analizar 4 clústeres, aunque hemos tenido resultados contrarios en el método de la silueta y del codo. El primero nos indicaba un número de 2 clusters mientras que el método del codo al menos 4 clústeres. Hemos decidido ir por 4 clústeres para una mejor separación de características.
@@ -837,8 +838,7 @@ El análisis de la importancia de las variables realizado mediante el modelo de 
 
 **2. ¿Cómo influyen las variables temporales (como el día de la semana y el momento del día en que se publica una imagen) en la cantidad de favoritos?**
 
-Como observamos al analizar los gráficos de barras de las variables categóricas en relación con la variable objetivo (`image_favs_cat`), las variables temporales, como el día de la semana y el momento del día, no parecen diferir significativamente en el número de imágenes con los distintos niveles de `image_favs_cat`, con la excepción de las imágenes publicadas en enero, que tienen más casos en la categoría "Very Low" que en otras. Es decir, tanto el día de la semana como el momento del día en que se publica la imagen no son relevantes a la hora de determinar el número de favs que obtendrá una imagen.
-
+Como observamos al analizar los gráficos de barras de las variables categóricas en relación con la variable objetivo (`image_favs_cat`), las variables temporales, como el día de la semana y el momento del día, no parecen diferir significativamente en el número de imágenes con los distintos niveles de `image_favs_cat`, con la excepción de las imágenes publicadas en enero, que tienen más casos en la categoría "Very Low" que en otras. Es decir, tanto el día de la semana como el momento del día en que se publica la imagen no son relevantes a la hora de determinar el número de favs que obtendrá una imagen. 
 **3. ¿Qué temas de búsqueda son más propensos a recibir un alto número de favoritos?**
 
 A partir del contraste de hipótesis, hemos visto que el tema de búsqueda (variable search_topic) influye en la popularidad de las imágenes. 
