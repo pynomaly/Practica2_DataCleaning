@@ -3,9 +3,9 @@ title: "Práctica 2 - Tipología y Ciclo de Vida de los Datos"
 author: "Esteban Braganza Cajas y Ana Álvarez Sánchez"
 date: "2024-05-22"
 output:
+  pdf_document: default
   html_document:
     df_print: paged
-  pdf_document: default
 ---
 
 ```{r setup, include=FALSE}
@@ -23,6 +23,7 @@ library(skimr) # Descriptivas univariadas masivas
 library(ggplot2)
 library(rpart) # Arboles
 library(rpart.plot) # Graficar arboles
+
 ```
 
 # 1. Descripción del dataset
@@ -399,7 +400,10 @@ recipe <- data_parsed %>%
                            "image_com", "image_views", "image_favs"))  
 
 train <-prep(recipe, data_parsed)
+data_preprocessed <- bake(train, data_parsed)
 
+# Save the dataframe to a CSV file
+write.csv(data_preprocessed, file = "../data/images_db_preprocessed.csv", row.names = FALSE)
 ```
 
 
